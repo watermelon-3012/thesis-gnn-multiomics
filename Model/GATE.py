@@ -40,7 +40,7 @@ class GATE(nn.Module):
     def __init__(
         self,
         dropout,
-        in_rna, in_adt,
+        in_omics1, in_omics2,
         branch_dims=(128, 64),
         fusion_dim=128,
         z_dim=32,
@@ -49,8 +49,8 @@ class GATE(nn.Module):
         super().__init__()
 
         # ===== GAT encoders =====
-        self.rna_branch = GATEncoder(in_rna, branch_dims, heads=heads, dropout=dropout)
-        self.adt_branch = GATEncoder(in_adt, branch_dims, heads=heads, dropout=dropout)
+        self.omics1_branch = GATEncoder(in_omics1, branch_dims, heads=heads, dropout=dropout)
+        self.omics2_branch = GATEncoder(in_omics2, branch_dims, heads=heads, dropout=dropout)
 
         fused_in = branch_dims[-1] * 2
 
@@ -61,51 +61,51 @@ class GATE(nn.Module):
         )
 
         # ===== Decoders (IMPORTANT PART of GATE) =====
-        self.decoder_rna = nn.Sequential(
+        self.decoder_omics1 = nn.Sequential(
             nn.Linear(z_dim, fusion_dim),
             nn.ReLU(),
-            nn.Linear(fusion_dim, in_rna)
+            nn.Linear(fusion_dim, in_omics1)
         )
 
-        self.decoder_adt = nn.Sequential(
+        self.decoder_omics2 = nn.Sequential(
             nn.Linear(z_dim, fusion_dim),
             nn.ReLU(),
-            nn.Linear(fusion_dim, in_adt)
+            nn.Linear(fusion_dim, in_omics2)
         )
 
-    def forward(self, x_rna, x_adt, edge_index):
-        h_rna = self.rna_branch(x_rna, edge_index)
-        h_adt = self.adt_branch(x_adt, edge_index)
+    def forward(self, x_omics1, x_omics2, edge_index):
+        h_omics1 = self.omics1_branch(x_omics1, edge_index)
+        h_omics2 = self.omics2_branch(x_omics2, edge_index)
 
-        h = torch.cat([h_rna, h_adt], dim=-1)
+        h = torch.cat([h_omics1, h_omics2], dim=-1)
         z = self.encoder(h)
 
-        xhat_rna = self.decoder_rna(z)
-        xhat_adt = self.decoder_adt(z)
+        xhat_omics1 = self.decoder_omics1(z)
+        xhat_omics2 = self.decoder_omics2(z)
 
-        return z, xhat_rna, xhat_adt
+        return z, xhat_omics1, xhat_omics2
     
 def train_gate(model, data, epochs, device,
                lr=1e-3, weight_decay=1e-5,
-               lambda_rna=1.0, lambda_adt=1.0,
+               lambda_omics1=1.0, lambda_omics2=1.0,
                lambda_smooth=0.1,
                lambda_reg=1e-3):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
-    x_rna = data.x_rna.to(device)
-    x_adt = data.x_adt.to(device)
+    x_omics1 = data.x_omics1.to(device)
+    x_omics2 = data.x_omics2.to(device)
     edge_index = data.edge_index.to(device)
 
     for epoch in range(epochs):
         model.train()
         optimizer.zero_grad()
 
-        z, xhat_rna, xhat_adt = model(x_rna, x_adt, edge_index)
+        z, xhat_omics1, xhat_omics2 = model(x_omics1, x_omics2, edge_index)
 
         # ===== 1. Feature reconstruction =====
-        loss_rna = F.mse_loss(xhat_rna, x_rna)
-        loss_adt = F.mse_loss(xhat_adt, x_adt)
+        loss_omics1 = F.mse_loss(xhat_omics1, x_omics1)
+        loss_omics2 = F.mse_loss(xhat_omics2, x_omics2)
 
         # ===== 2. Spatial smoothness =====
         row, col = edge_index
@@ -116,8 +116,8 @@ def train_gate(model, data, epochs, device,
 
         # ===== Total loss =====
         loss = (
-            lambda_rna * loss_rna +
-            lambda_adt * loss_adt +
+            lambda_omics1 * loss_omics1 +
+            lambda_omics2 * loss_omics2 +
             lambda_smooth * loss_smooth +
             lambda_reg * loss_reg
         )
@@ -127,14 +127,14 @@ def train_gate(model, data, epochs, device,
 
         print(f"Epoch {epoch+1:03d} | "
               f"Total: {loss.item():.4f} | "
-              f"RNA: {loss_rna.item():.4f} | "
-              f"ADT: {loss_adt.item():.4f} | "
+              f"Omics1: {loss_omics1.item():.4f} | "
+              f"Omics2: {loss_omics2.item():.4f} | "
               f"Smooth: {loss_smooth.item():.4f} | "
               f"Reg: {loss_reg.item():.4f}")
 
     # ===== Final embedding =====
     model.eval()
     with torch.no_grad():
-        z, _, _ = model(x_rna, x_adt, edge_index)
+        z, _, _ = model(x_omics1, x_omics2, edge_index)
 
     return z

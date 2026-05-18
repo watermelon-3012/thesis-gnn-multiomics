@@ -2,24 +2,25 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from Model.VGAE import Encoder
+from torch_geometric.utils import negative_sampling
 
 class GAE(nn.Module):
     def __init__(
         self,
         dropout,
-        in_rna, in_adt,
+        in_omics1, in_omics2,
         branch_dims=(128, 64),
         fusion_dim=128,
         z_dim=32,
-        recon_rna_dim=None,
-        recon_adt_dim=None,
+        recon_omics1_dim=None,
+        recon_omics2_dim=None,
         recon_spatial_dim=None,
     ):
         super().__init__()
 
         # ===== Encoders (same as VGAE) =====
-        self.rna_branch = Encoder(in_rna, branch_dims, dropout=dropout)
-        self.adt_branch = Encoder(in_adt, branch_dims, dropout=dropout)
+        self.omics1_branch = Encoder(in_omics1, branch_dims, dropout=dropout)
+        self.omics2_branch = Encoder(in_omics2, branch_dims, dropout=dropout)
 
         fused_in = branch_dims[-1] * 2
         self.fuse = nn.Sequential(
@@ -29,21 +30,21 @@ class GAE(nn.Module):
         )
 
         # ===== Reconstruction heads =====
-        self.recon_rna = None
-        self.recon_adt = None
+        self.recon_omics1 = None
+        self.recon_omics2 = None
         self.recon_spatial = None
 
-        if recon_rna_dim is not None:
-            self.recon_rna = nn.Sequential(
+        if recon_omics1_dim is not None:
+            self.recon_omics1 = nn.Sequential(
                 nn.Linear(z_dim, fusion_dim),
                 nn.ReLU(),
-                nn.Linear(fusion_dim, recon_rna_dim),
+                nn.Linear(fusion_dim, recon_omics1_dim),
             )
-        if recon_adt_dim is not None:
-            self.recon_adt = nn.Sequential(
+        if recon_omics2_dim is not None:
+            self.recon_omics2 = nn.Sequential(
                 nn.Linear(z_dim, fusion_dim),
                 nn.ReLU(),
-                nn.Linear(fusion_dim, recon_adt_dim),
+                nn.Linear(fusion_dim, recon_omics2_dim),
             )
         if recon_spatial_dim is not None:
             self.recon_spatial = nn.Sequential(
@@ -52,10 +53,10 @@ class GAE(nn.Module):
                 nn.Linear(fusion_dim, recon_spatial_dim),
             )
 
-    def encode(self, x_rna, x_adt, edge_index):
-        h_rna = self.rna_branch(x_rna, edge_index)
-        h_adt = self.adt_branch(x_adt, edge_index)
-        h = torch.cat([h_rna, h_adt], dim=-1)
+    def encode(self, x_omics1, x_omics2, edge_index):
+        h_omics1 = self.omics1_branch(x_omics1, edge_index)
+        h_omics2 = self.omics2_branch(x_omics2, edge_index)
+        h = torch.cat([h_omics1, h_omics2], dim=-1)
         z = self.fuse(h)
         return z
 
@@ -63,20 +64,20 @@ class GAE(nn.Module):
         # same as VGAE
         return torch.sigmoid((z[edge_index[0]] * z[edge_index[1]]).sum(dim=-1))
 
-    def forward(self, x_rna, x_adt, edge_index):
-        z = self.encode(x_rna, x_adt, edge_index)
+    def forward(self, x_omics1, x_omics2, edge_index):
+        z = self.encode(x_omics1, x_omics2, edge_index)
 
-        xhat_rna = self.recon_rna(z) if self.recon_rna else None
-        xhat_adt = self.recon_adt(z) if self.recon_adt else None
+        xhat_omics1 = self.recon_omics1(z) if self.recon_omics1 else None
+        xhat_omics2 = self.recon_omics2(z) if self.recon_omics2 else None
         xhat_spatial = self.recon_spatial(z) if self.recon_spatial else None
 
         adj_pred = self.decode_graph(z, edge_index)
 
-        return z, xhat_rna, xhat_adt, xhat_spatial, adj_pred
+        return z, xhat_omics1, xhat_omics2, xhat_spatial, adj_pred
     
 def train_gae(model, data, epochs, device,
               lr=1e-3, weight_decay=1e-5,
-              lambda_rna=1.0, lambda_adt=1.0):
+              lambda_omics1=1.0, lambda_omics2=1.0):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     edge_index = data.edge_index.to(device)
@@ -85,9 +86,9 @@ def train_gae(model, data, epochs, device,
         model.train()
         optimizer.zero_grad()
 
-        z, xhat_rna, xhat_adt, _, _ = model(
-            data.x_rna.to(device),
-            data.x_adt.to(device),
+        z, xhat_omics1, xhat_omics2, _, _ = model(
+            data.x_omics1.to(device),
+            data.x_omics2.to(device),
             edge_index
         )
 
@@ -107,11 +108,11 @@ def train_gae(model, data, epochs, device,
         loss_edges = F.binary_cross_entropy(preds, labels)
 
         # ===== Feature reconstruction =====
-        loss_rna = F.mse_loss(xhat_rna, data.x_rna.to(device)) if xhat_rna is not None else 0
-        loss_adt = F.mse_loss(xhat_adt, data.x_adt.to(device)) if xhat_adt is not None else 0
+        loss_omics1 = F.mse_loss(xhat_omics1, data.x_omics1.to(device)) if xhat_omics1 is not None else 0
+        loss_omics2 = F.mse_loss(xhat_omics2, data.x_omics2.to(device)) if xhat_omics2 is not None else 0
 
         # ===== Total loss =====
-        loss = loss_edges + lambda_rna * loss_rna + lambda_adt * loss_adt
+        loss = loss_edges + lambda_omics1 * loss_omics1 + lambda_omics2 * loss_omics2
 
         loss.backward()
         optimizer.step()
@@ -119,15 +120,15 @@ def train_gae(model, data, epochs, device,
         print(f"Epoch {epoch+1:03d} | "
               f"Total: {loss.item():.4f} | "
               f"Graph: {loss_edges.item():.4f} | "
-              f"RNA: {float(loss_rna):.4f} | "
-              f"ADT: {float(loss_adt):.4f}")
+              f"Omics1: {float(loss_omics1):.4f} | "
+              f"Omics2: {float(loss_omics2):.4f}")
 
     # ===== Final embedding =====
     model.eval()
     with torch.no_grad():
         z, _, _, _, _ = model(
-            data.x_rna.to(device),
-            data.x_adt.to(device),
+            data.x_omics1.to(device),
+            data.x_omics2.to(device),
             edge_index
         )
 

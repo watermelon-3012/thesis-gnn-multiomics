@@ -8,17 +8,17 @@ def corrupt_features(x):
     return x[perm]
 
 def corrupt(data):
-    x_rna_corrupt = corrupt_features(data.x_rna)
-    x_adt_corrupt = corrupt_features(data.x_adt)
-    return x_rna_corrupt, x_adt_corrupt, data.edge_index
+    x_omics1_corrupt = corrupt_features(data.x_omics1)
+    x_omics2_corrupt = corrupt_features(data.x_omics2)
+    return x_omics1_corrupt, x_omics2_corrupt, data.edge_index
 
 class DGI(nn.Module):
-    def __init__(self, in_rna, in_adt, hidden_dims=(128, 64), dropout=0.2):
+    def __init__(self, in_omics1, in_omics2, hidden_dims=(128, 64), dropout=0.2):
         super().__init__()
 
         # encoders 
-        self.rna_encoder = Encoder(in_rna, hidden_dims, dropout)
-        self.adt_encoder = Encoder(in_adt, hidden_dims, dropout)
+        self.omics1_encoder = Encoder(in_omics1, hidden_dims, dropout)
+        self.omics2_encoder = Encoder(in_omics2, hidden_dims, dropout)
 
         fused_dim = hidden_dims[-1] * 2
 
@@ -31,10 +31,10 @@ class DGI(nn.Module):
         self.weight = nn.Parameter(torch.Tensor(fused_dim, fused_dim))
         nn.init.xavier_uniform_(self.weight)
 
-    def encode(self, x_rna, x_adt, edge_index):
-        h_rna = self.rna_encoder(x_rna, edge_index)
-        h_adt = self.adt_encoder(x_adt, edge_index)
-        h = torch.cat([h_rna, h_adt], dim=-1)
+    def encode(self, x_omics1, x_omics2, edge_index):
+        h_omics1 = self.omics1_encoder(x_omics1, edge_index)
+        h_omics2 = self.omics2_encoder(x_omics2, edge_index)
+        h = torch.cat([h_omics1, h_omics2], dim=-1)
         z = self.fuse(h)
         return z
 
@@ -49,11 +49,11 @@ class DGI(nn.Module):
 
     def forward(self, data):
         # positive
-        z_pos = self.encode(data.x_rna, data.x_adt, data.edge_index)
+        z_pos = self.encode(data.x_omics1, data.x_omics2, data.edge_index)
 
         # negative (corrupted)
-        x_rna_neg, x_adt_neg, edge_neg = corrupt(data)
-        z_neg = self.encode(x_rna_neg, x_adt_neg, edge_neg)
+        x_omics1_neg, x_omics2_neg, edge_neg = corrupt(data)
+        z_neg = self.encode(x_omics1_neg, x_omics2_neg, edge_neg)
 
         # summary
         s = self.summary(z_pos)
@@ -120,5 +120,5 @@ def get_embedding_dgi(model, data, device=None):
     model.eval()
     data = data.to(device)
 
-    z = model.encode(data.x_rna, data.x_adt, data.edge_index)
+    z = model.encode(data.x_omics1, data.x_omics2, data.edge_index)
     return z.cpu()
