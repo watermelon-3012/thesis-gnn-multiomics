@@ -11,6 +11,8 @@ from scipy.spatial import cKDTree
 from scipy.stats import mode
 from collections import Counter
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, homogeneity_score
+from torch.backends import cudnn
+import random
 
 def cKD_refine_label(coords, labels, k):
     # Step 1: Build KD-Tree
@@ -77,3 +79,16 @@ def compute_metrics(labels_true, labels_pred):
     HOM = homogeneity_score(labels_true, labels_pred)
 
     return {"ARI": ARI, "NMI": NMI, "HOM": HOM}
+
+def fix_seed(seed=42):
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    cudnn.deterministic = True
+    cudnn.benchmark = False
+    
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'    
