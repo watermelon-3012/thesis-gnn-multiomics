@@ -1,4 +1,5 @@
 import torch
+import copy
 from torch_geometric.nn import GCNConv
 import torch.nn.functional as F
 import torch.nn as nn
@@ -129,12 +130,49 @@ def kl_loss(mu, logvar, eps=1e-9):
     return -0.5 * torch.mean(1 + logvar - mu.pow(2) - logvar.exp() + eps)
 
 def train_vgae(model, data, epochs, device,
-               lr=1e-3, weight_decay=1e-5, dropout=0.2,
-               lambda_omics1=1.0, lambda_omics2=1.0):
-
-
+               lr=1e-3, weight_decay=1e-5,
+               lambda_omics1=1.0, lambda_omics2=1.0,
+               max_patience=30, min_stop=100):
+    """
+    Train VGAE model with early stopping strategy
+    
+    Parameters:
+    -----------
+    model : torch.nn.Module
+        VGAE model to train
+    data : object
+        Data object containing x_omics1, x_omics2, edge_index
+    epochs : int
+        Maximum number of epochs
+    device : str
+        Device to use (cuda or cpu)
+    lr : float, optional
+        Learning rate (default: 1e-3)
+    weight_decay : float, optional
+        Weight decay for optimizer (default: 1e-5)
+    dropout : float, optional
+        Dropout rate (default: 0.2)
+    lambda_omics1 : float, optional
+        Weight for omics1 reconstruction loss (default: 1.0)
+    lambda_omics2 : float, optional
+        Weight for omics2 reconstruction loss (default: 1.0)
+    max_patience : int, optional
+        Maximum patience for early stopping (default: 30)
+    min_stop : int, optional
+        Minimum epochs before early stopping allowed (default: 100)
+    
+    Returns:
+    --------
+    z : torch.Tensor
+        Final embeddings from the trained model
+    """
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     edge_index = data.edge_index.to(device)
+    
+    # Early stopping variables
+    min_loss = float('inf')
+    patience = 0
+    best_model = copy.deepcopy(model)
 
     for epoch in range(epochs):
         model.train()
@@ -176,12 +214,31 @@ def train_vgae(model, data, epochs, device,
         # Backprop
         loss.backward()
         optimizer.step()
-        print(f"Epoch {epoch+1:03d} | "
-              f"Total: {loss.item():.4f} | "
-              f"Graph: {loss_edges.item():.4f} | "
-              f"KLD: {loss_kld.item():.4f} | "
-              f"Omics1: {float(loss_omics1):.4f} | "
-              f"Omics2: {float(loss_omics2):.4f}")
+        
+        train_loss = loss.item()
+        if (epoch + 1) % 10 == 0:
+            print(f"Epoch {epoch+1:03d} | "
+                  f"Total: {train_loss:.4f} | "
+                  f"Graph: {loss_edges.item():.4f} | "
+                  f"KLD: {loss_kld.item():.4f} | "
+                  f"Omics1: {float(loss_omics1):.4f} | "
+                  f"Omics2: {float(loss_omics2):.4f}")
+        
+        # Early stopping logic (adapted from COSMOS)
+        if train_loss > min_loss:
+            patience += 1
+        else:
+            patience = 0
+            min_loss = train_loss
+            best_model = copy.deepcopy(model)
+        
+        # Check early stopping condition
+        if patience > max_patience and epoch > min_stop:
+            print(f"Early stopping at epoch {epoch+1}: patience exceeded")
+            break
+
+    # Restore best model parameters
+    model = best_model
 
     # Final embeddings
     model.eval()
