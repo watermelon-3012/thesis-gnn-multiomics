@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from Model.VGAE import Encoder
+from src.Model.VGAE import Encoder
 from torch_geometric.utils import negative_sampling
 
 class GAE(nn.Module):

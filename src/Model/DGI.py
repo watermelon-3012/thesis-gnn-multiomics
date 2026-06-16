@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from Model.VGAE import Encoder
+from src.Model.VGAE import Encoder
 
 def corrupt_features(x):
     perm = torch.randperm(x.size(0))

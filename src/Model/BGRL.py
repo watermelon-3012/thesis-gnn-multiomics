@@ -2,7 +2,7 @@ import copy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from Model.VGAE import Encoder
+from src.Model.VGAE import Encoder
 
 class BGRL(nn.Module):
     def __init__(
