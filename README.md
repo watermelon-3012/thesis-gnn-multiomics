@@ -10,7 +10,7 @@ This thesis project implements various GNN-based methods for analyzing spatial m
 
 - **Multi-GNN Architecture**: Implementation of multiple graph neural network models (VGAE, GAE, GATE, BGRL, DGI)
 - **Multi-omics Integration**: Integration of spatial transcriptomics and proteomics/epigenomics data
-- **Spatial Domain Identification**: Advanced methods for discovering spatial domains in tissue samples
+- **Spatial Domain Identification**: Clustering for discovering spatial domains in tissue samples
 - **Flexible Preprocessing**: Comprehensive utilities for data normalization, graph construction, and feature engineering
 - **Evaluation Metrics**: Built-in evaluation functions including ARI, NMI, and HOM
 
@@ -63,12 +63,15 @@ thesis/
 
     conda activate thesis
 ```
+
     2.2 Install dependencies
+
 ```bash
     pip install -r requirements.txt
 ```
 
     2.3 To use the environment in jupyter notebook, add python kernel for this environment.
+
 ```bash
     pip install ipykernel
 
