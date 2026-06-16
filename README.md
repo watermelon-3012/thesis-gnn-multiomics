@@ -52,6 +52,7 @@ thesis/
 ```
 
 2. **Create a virtual environment (recommended)**
+
     2.1 Create conda environment and install package
 ```bash
     #Create an environment called SpatialGlue
