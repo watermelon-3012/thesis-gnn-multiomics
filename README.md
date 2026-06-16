@@ -1,180 +1,285 @@
-# Graph Neural Network-Based Representation Learning for Multi-omics Data
+# Graph Neural Network-Based Representation Learning for Spatial Multi-omics Data
 
-A comprehensive method for representation learning using Graph Neural Networks (GNNs) to integrate spatial multi-omics data and identify spatial domains.
+A Graph Neural Network (GNN) framework for integrating spatial multi-omics data and identifying biologically meaningful spatial domains through representation learning.
 
-## Overview
+## Introduction
 
-This thesis project implements various GNN-based methods for analyzing spatial multi-omics datasets, enabling the discovery of biologically meaningful spatial domains through advanced representation learning techniques. The framework integrates multiple graph representation learning approaches including the proposed VGAE model, and 4 baselines: GAE, GATE, BGRL, DGI.
+Spatial multi-omics technologies enable simultaneous measurement of multiple molecular modalities, such as transcriptomics, proteomics, and epigenomics, while preserving spatial information within tissues. Integrating these heterogeneous data sources remains a challenging task due to their high dimensionality and complex relationships.
 
-## Key Features
+This project investigates Graph Neural Network (GNN)-based representation learning methods for spatial multi-omics integration and spatial domain identification. The framework includes a proposed Variational Graph Autoencoder (VGAE) model and four baseline methods:
 
-- **Multi-GNN Architecture**: Implementation of multiple graph neural network models (VGAE, GAE, GATE, BGRL, DGI)
-- **Multi-omics Integration**: Integration of spatial transcriptomics and proteomics/epigenomics data
-- **Spatial Domain Identification**: Clustering for discovering spatial domains in tissue samples
-- **Flexible Preprocessing**: Comprehensive utilities for data normalization, graph construction, and feature engineering
-- **Evaluation Metrics**: Built-in evaluation functions including ARI, NMI, and HOM
+* VGAE (Variational Graph Autoencoder)
+* GAE (Graph Autoencoder)
+* GATE (Graph Attention Autoencoder)
+* BGRL (Bootstrapped Graph Representation Learning)
+* DGI (Deep Graph Infomax)
 
-## Project Structure
+The learned latent representations are used for clustering and spatial domain discovery in tissue samples.
 
-```
+---
+
+## Features
+
+* Multiple GNN architectures implemented within a unified framework
+* Integration of spatial transcriptomics with proteomics or epigenomics data
+* Spatial graph construction and representation learning
+* Spatial domain identification through clustering
+* Comprehensive preprocessing utilities
+* Built-in evaluation metrics:
+
+  * Adjusted Rand Index (ARI)
+  * Normalized Mutual Information (NMI)
+  * Homogeneity Score (HOM)
+* Visualization and model comparison tools
+
+---
+
+## Repository Structure
+
+```text
 thesis/
 ├── src/
 │   ├── Model/
-│   │   ├── BGRL.py          # Bootstrapped Graph Representation Learning
-│   │   ├── DGI.py           # Deep Graph Infomax
-│   │   ├── GAE.py           # Graph Autoencoder
-│   │   ├── GATE.py          # Graph Attention-based autoencoder
-│   │   └── VGAE.py          # Variational Graph Autoencoder
-│   ├── utils.py             # Preprocessing and evaluation utilities
-│   └── boxplot.py           # Visualization helper
+│   │   ├── BGRL.py
+│   │   ├── DGI.py
+│   │   ├── GAE.py
+│   │   ├── GATE.py
+│   │   └── VGAE.py
+│   ├── utils.py
+│   └── boxplot.py
+│
 ├── notebook/
-│   ├── all_models.ipynb     # Comprehensive model comparison notebook
-│   └── test_data.ipynb      # Test data and quick start guide
-├── dataset/                 # Multi-omics spatial datasets
-├── figure/                  # Generated figures and visualizations
-├── requirements.txt         # Python package dependencies
-└── README.md               # This file
+│   ├── all_models.ipynb
+│   └── test_data.ipynb
+│
+├── dataset/
+├── figure/
+├── requirements.txt
+└── README.md
 ```
+
+### Directory Description
+
+| Directory/File              | Description                                                      |
+| --------------------------- | ---------------------------------------------------------------- |
+| `src/Model/`                | Implementation of all GNN models                                 |
+| `src/utils.py`              | Data preprocessing, graph construction, and evaluation utilities |
+| `src/boxplot.py`            | Visualization helper functions                                   |
+| `notebook/all_models.ipynb` | Complete experimental pipeline and model comparison              |
+| `notebook/test_data.ipynb`  | Quick-start notebook for testing                                 |
+| `dataset/`                  | Spatial multi-omics datasets                                     |
+| `figure/`                   | Generated figures and visualizations                             |
+
+---
 
 ## Installation
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- PyTorch 1.9 or higher
-- CUDA support (optional, for GPU acceleration)
+* Python 3.8+
+* PyTorch 1.9+
+* CUDA-enabled GPU (optional)
 
-### Setup Instructions
-
-1. **Clone the repository**
-```bash
-   git clone https://github.com/watermelon-3012/thesis-gnn-multiomics
-```
-
-2. **Create a virtual environment (recommended)**
-
-    2.1 Create conda environment and install package
-```bash
-    #Create an environment called SpatialGlue
-
-    conda create -n thesis python=3.8
-
-    #Activate your environment
-
-    conda activate thesis
-```
-
-    2.2 Install dependencies
+### Clone the Repository
 
 ```bash
-    pip install -r requirements.txt
+git clone https://github.com/watermelon-3012/thesis-gnn-multiomics.git
+cd thesis-gnn-multiomics
 ```
 
-    2.3 To use the environment in jupyter notebook, add python kernel for this environment.
+### Create a Conda Environment
 
 ```bash
-    pip install ipykernel
-
-    python -m ipykernel install --user --name=thesis  
+conda create -n thesis python=3.8
+conda activate thesis
 ```
 
-### Dependencies
+### Install Dependencies
 
-Key packages required:
-- `torch` - Deep learning framework
-- `torch_geometric` - Graph neural network library
-- `scanpy` - Single-cell analysis in Python
-- `anndata` - Annotated data structure
-- `pandas` - Data manipulation
-- `scipy` - Scientific computing
-- `scikit-learn` - Machine learning utilities
-- `numpy` - Numerical computing
-- `matplotlib` - Visualization
+```bash
+pip install -r requirements.txt
+```
 
-See `requirements.txt` for complete dependency list.
+### Register Jupyter Kernel
 
-## Usage
+```bash
+pip install ipykernel
 
-### Basic Workflow
+python -m ipykernel install \
+    --user \
+    --name thesis \
+    --display-name "Python (thesis)"
+```
 
-1. Load and Prepare Data
-2. Build Spatial Graph
-3. Train a Model
-4. Identify Spatial Domains by Clustering
-5. Evaluate Results
+---
 
-### Comprehensive Model Comparison
+## Required Dependencies
 
-To run all models and dataset and compare their performance:
+Major packages used in this project include:
+
+* `torch`
+* `torch_geometric`
+* `scanpy`
+* `anndata`
+* `numpy`
+* `pandas`
+* `scipy`
+* `scikit-learn`
+* `matplotlib`
+
+See `requirements.txt` for the complete dependency list.
+
+---
+
+## Data Requirements
+
+Supported input formats:
+
+* H5AD (`.h5ad`)
+* HDF5 (`.h5`)
+* CSV (`.csv`)
+
+Each dataset should contain:
+
+1. Expression matrix (cells × features)
+2. Spatial coordinates (x, y)
+3. Multi-omics modalities (e.g., gene expression and protein abundance)
+4. Ground-truth spatial domain labels (optional, for evaluation)
+
+---
+
+## Workflow
+
+The typical analysis pipeline consists of the following steps:
+
+1. Load spatial multi-omics data
+2. Preprocess and normalize features
+3. Construct spatial neighborhood graphs
+4. Train a GNN model
+5. Learn latent node representations
+6. Cluster embeddings to identify spatial domains
+7. Evaluate clustering performance
+8. Visualize spatial domains and embeddings
+
+---
+
+## Available Models
+
+### VGAE – Variational Graph Autoencoder
+
+A probabilistic graph autoencoder that uses variational inference to learn robust latent representations.
+
+### GAE – Graph Autoencoder
+
+A deterministic graph autoencoder for unsupervised node representation learning.
+
+### GATE – Graph Attention Autoencoder
+
+Uses graph attention mechanisms to adaptively weight neighboring nodes during representation learning.
+
+### BGRL – Bootstrapped Graph Representation Learning
+
+A self-supervised method that learns node embeddings through bootstrapping without negative samples.
+
+### DGI – Deep Graph Infomax
+
+Learns representations by maximizing mutual information between local node embeddings and global graph summaries.
+
+---
+
+## Running Experiments
+
+### Quick Start
+
+Launch the main notebook:
 
 ```bash
 jupyter notebook notebook/all_models.ipynb
 ```
 
-This notebook demonstrates:
-- Data loading and preprocessing
-- Model initialization for all five GNN architectures
-- Training procedures
-- Performance comparison and visualization
+The notebook performs:
 
-## Available Models
+* Data loading
+* Feature preprocessing
+* Graph construction
+* Model training
+* Embedding extraction
+* Clustering
+* Performance evaluation
+* Result visualization
 
-### 1. **VGAE** - Variational Graph Autoencoder
-Probabilistic graph autoencoder using variational inference for robust latent representations.
+---
 
-### 2. **GAE** - Graph Autoencoder
-Standard graph autoencoder for unsupervised representation learning with deterministic encoder/decoder.
+## Reproducing Experimental Results
 
-### 3. **GATE** - Graph Attention-based Autoencoder
-Incorporates attention mechanisms to learn adaptive node importance in the neighborhood.
+### Step 1: Prepare Data
 
-### 4. **BGRL** - Bootstrapped Graph Representation Learning
-Self-supervised learning approach using bootstrapping for unsupervised graph representation learning.
+Place datasets in the `dataset/` directory.
 
-### 5. **DGI** - Deep Graph Infomax
-Maximizes mutual information between node representations and graph-level summary statistics.
+Example:
 
-## Reproducing Results
-
-### Step-by-Step Reproduction
-
-1. **Prepare Dataset**
-   - Place your spatial multi-omics data in the `dataset/` folder (h5ad, csv, or h5 format)
-   - Ensure data contains spatial coordinates and gene/protein expression matrices
-
-2. **Run Analysis Pipeline**
-```bash
-   # Execute the complete analysis
-   jupyter notebook notebook/all_models.ipynb
+```text
+dataset/
+├── sample_1.h5ad
+├── sample_2.h5ad
+└── ...
 ```
 
-3. **Configuration**
-   Edit parameters in the notebooks or create a config file
+### Step 2: Configure Parameters
 
-4. **Generate Results**
-   - Model embeddings are saved automatically
-   - Visualizations are stored in the `figure/` folder
-   - Evaluation metrics are printed and can be exported
-   
-## Data Formats
+Modify hyperparameters directly in:
 
-Supported input formats:
-- **H5AD**: AnnData format (recommended) - `scanpy.read_h5ad()`
-- **H5**: HDF5 format for large datasets
-- **CSV**: Comma-separated values with metadata
+```text
+notebook/all_models.ipynb
+```
 
-Expected data structure:
-- Gene/protein/epigenome expression matrix (cells × genes/proteins/epigenome features)
-- Spatial coordinates (x, y coordinates for each cell)
-- Spatial domain labels (for evaluation)
+Examples include:
+
+* Learning rate
+* Hidden dimensions
+* Number of epochs
+* Graph construction settings
+* Clustering parameters
+
+### Step 3: Run the Pipeline
+
+```bash
+jupyter notebook notebook/all_models.ipynb
+```
+
+### Step 4: Collect Outputs
+
+Generated outputs include:
+
+* Learned embeddings
+* Spatial domain predictions
+* Evaluation metrics
+* Visualization figures
+
+Results are automatically saved to the corresponding output directories.
+
+---
 
 ## Evaluation Metrics
 
-The method includes standard clustering evaluation metrics:
-- **ARI** (Adjusted Rand Index): Measures agreement between predicted and true labels
-- **NMI** (Normalized Mutual Information): Quantifies mutual dependence between label sets
-- **HOM** (Homogeneity Score): Ensures all clusters contain only members of a single class
+### Adjusted Rand Index (ARI)
 
-## Contributing
+Measures agreement between predicted and true labels while correcting for random chance.
 
-For questions or issues, please contact the thesis author or open an issue in the repository.
+### Normalized Mutual Information (NMI)
+
+Measures the mutual dependence between predicted clusters and ground-truth labels.
+
+### Homogeneity Score (HOM)
+
+Measures whether each cluster contains only samples from a single class.
+
+---
+
+## Contact
+
+For questions, suggestions, or bug reports, please open an issue in the repository or contact the author.
+
+GitHub Repository:
+
+https://github.com/watermelon-3012/thesis-gnn-multiomics
