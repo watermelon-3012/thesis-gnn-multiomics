@@ -278,7 +278,7 @@ Measures whether each cluster contains only samples from a single class.
 
 ## Contact
 
-For questions, suggestions, or bug reports, please open an issue in the repository or contact the author.
+If you have any questions, suggestions, or encounter any issues, please feel free to open an issue in this repository or contact the author at **[hanls.23bi14150@usth.edu.vn](mailto:hanls.23bi14150@usth.edu.vn)**.
 
 GitHub Repository:
 
